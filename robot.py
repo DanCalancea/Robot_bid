@@ -1,24 +1,49 @@
 import time
-import datetime as dt
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.wait import WebDriverWait
 
 
+def nrdayofmonth(year, month):  # number of day month
 
-def transformtime(time1): # transform timpul din formatul afisat de EBAY
+    if ((month == 2) and ((year % 4 == 0) or ((year % 100 == 0) and (year % 400 == 0)))):
+        return 29
+    elif month == 2:
+        return 28
+    elif month == 1 or month == 3 or month == 5 or month == 7 or month == 8 or month == 10 or month == 12:
+        return 31
+    else:
+        return 30
 
+
+def transformtime(time1):  # transform timpul din formatul afisat de EBAY
+
+    prima = time1.split(',')[0]
+    wday = {'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4, "Saturday": 5, 'Sunday': 6}
+    today = datetime.now()
+    year, month, day, dayweek = today.year, today.month, today.day, today.weekday()
+
+    if time1[:5] == 'Today':
+        time1 = time1.replace('Today', str(month) + '/' + str(day) + ',')
+    if prima in wday.keys():
+        if wday[prima] > dayweek:
+            day += wday[prima] - dayweek
+        else:
+            day += 7 + wday[prima] - dayweek
+        if day > nrdayofmonth(year, month):
+
+            day = day - nrdayofmonth(year, month)
+            month += 1
+            if month == 13:
+                month = 1
+                year += 1
+        time1 = time1.replace(prima + ',', str(month) + '/' + str(day) + ',')
+    year = str(year)[2:]
     time1 = time1.replace('/', ',')
     time1 = time1.replace(' ', '')
     time1 = time1.replace(':', ',')
     timp_bid = time1.split(',')
-    time_end = timp_bid[0] + '/' + timp_bid[1]
-    today = datetime.now()
-    year=today.year
-    year=str(year)[2:]
-    time_end+='/'+year+' '
+    time_end = timp_bid[0] + '/' + timp_bid[1] + '/' + year + ' '
 
     if timp_bid[3][2:] == 'PM':
         time_end += str(int(timp_bid[2]) + 12) + ':'
@@ -32,30 +57,28 @@ def transformtime(time1): # transform timpul din formatul afisat de EBAY
     return timp
 
 
-MYPASS = "AircroXXX@"   # Ebay password
-MYUSER = "cala_XXX"     # Ebay user
-EBAYITEM = "https://www.ebay.com/itm/195898352941?hash=item2d9c73a52d:g:oUYAAOSwpnZkuMOu&amdata=enc%3A" \
-           "AQAIAAAAwBHG41DldfHHLHoHQdiTLh02RDZQBwkV%2BJ0%2FZbQSN6w5%2BZIxfrP81iOciO2EHTKEfeVPIHO%2FPLN1SHh7" \
-           "09pWcX9LnbNCV0rP4hzNGJp2hbrP2vwoKrXJGjWYOd6c8ZNl3%2BV2vrhFnZjVyFBtvkryIagRVTQORfvNp5xNyUc3O%2F0O8XESC" \
-           "wtcZX7paWXdua8Pua9g3oY1HwMQJxys8hsdKzscEinUi4wmwfYp4Jc6tnHtYuEI%2Fb0UcnDzUBuoZw8V4w%3D%3D%7Ctkp%3ABk9SR_jH-LWxYg"
-MAXBID = '5'            # max bid
-DEFAULTDELAY=2
-SAFEBIDSEC=3            # a few seconds before the end we decide to bid
-COMPENSATION=0          # we correct the seconds depending on the hardware and internet speed,
-                        # it can have positive or negative values
+MYPASS = "AircXXXX"  # Ebay password
+MYUSER = "calXXXX6"  # Ebay user
+EBAYITEM = "https://www.ebay.com/itm/354938773397?hash=item52a3ffdf95:g:VCEAAOSwf6xkv9fB"
+MAXBID = '4'  # max bid
+DEFAULTDELAY = 2
+SAFEBIDSEC = 7  # a few seconds before the end we decide to bid
+COMPENSATION = 0  # we correct the seconds depending on the hardware and internet speed,
+                  # it can have positive or negative values
 
 
 driver = webdriver.Firefox()
 driver.get(EBAYITEM)
 time.sleep(DEFAULTDELAY)
 time1 = driver.find_element(By.XPATH, "//span[@class='ux-timer__time-left']").text
+print(time1)
+secondestobid = int((transformtime(time1) - datetime.now()).total_seconds())
 
-secondestobid = int( (transformtime(time1) - datetime.now()).total_seconds())
+print(' Total seconds to bid ', secondestobid, transformtime(time1))
 
-print(' Total seconds to bid ',secondestobid)
-# input()
-secondestobid=30       # For testing only
-time.sleep(secondestobid-6*DEFAULTDELAY-SAFEBIDSEC+COMPENSATION)   # try to bid in last 3 sec
+# secondestobid=30       # For testing only
+
+time.sleep(secondestobid - 6 * DEFAULTDELAY - SAFEBIDSEC + COMPENSATION)  # try to bid in last 3 sec
 
 active_button = driver.find_element("link text", "Sign in")
 active_button.click()
